@@ -86,12 +86,17 @@ def render_report(
     daily_change_pct = percent_change(account_value, previous_value)
     total_unrealized = sum(position.unrealized_pnl for position in positions)
     movers = sorted(position_changes, key=lambda item: abs(item.value_change), reverse=True)[:top_movers]
+    comparison_text = (
+        f"{signed_money(daily_change, account_currency, currency_symbol)} / {signed_pct(daily_change_pct)} vs 24h comparison snapshot"
+        if previous_snapshot
+        else "24h comparison unavailable until an older daily snapshot exists"
+    )
 
     lines = [
         f"# Daily Portfolio Report - {datetime.now().strftime('%Y-%m-%d')}",
         "",
         "## Account",
-        f"- Account value: {money(account_value, account_currency, currency_symbol)} ({signed_money(daily_change, account_currency, currency_symbol)} / {signed_pct(daily_change_pct)} vs previous snapshot)",
+        f"- Account value: {money(account_value, account_currency, currency_symbol)} ({comparison_text})",
         f"- Cash available to trade: {money(cash, account_currency, currency_symbol)}",
         f"- Invested value: {money(sum(position.value for position in positions), account_currency, currency_symbol)}",
         f"- Unrealized P/L: {signed_money(total_unrealized, account_currency, currency_symbol)}",
@@ -108,7 +113,7 @@ def render_report(
                 f"({signed_pct(change.price_change_pct)}), current value {money(p.value, p.currency or account_currency, currency_symbol)}"
             )
     else:
-        lines.append("- No previous snapshot yet. Tomorrow's report will show daily movers.")
+        lines.append("- No 24-hour comparison snapshot yet. Tomorrow's report should show daily movers.")
 
     lines.extend(["", "## Positions"])
     for position in sorted(positions, key=lambda p: p.value, reverse=True):

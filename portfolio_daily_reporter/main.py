@@ -25,8 +25,8 @@ def main(argv: list[str] | None = None) -> int:
     settings = get_settings()
 
     store = SnapshotStore(settings.db_path)
-    previous_snapshot = store.previous_snapshot()
-    previous_positions = store.previous_positions_by_symbol()
+    previous_snapshot = store.comparison_snapshot()
+    previous_positions = store.comparison_positions_by_symbol(previous_snapshot)
 
     if args.sample_data:
         account_summary, positions = sample_portfolio()
