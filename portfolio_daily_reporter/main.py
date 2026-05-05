@@ -31,9 +31,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.sample_data:
         account_summary, positions = sample_portfolio()
     else:
-        client = Trading212Client(settings)
-        account_summary = client.account_summary()
-        positions = client.positions()
+        try:
+            client = Trading212Client(settings)
+            account_summary = client.account_summary()
+            positions = client.positions()
+        except Exception as exc:
+            print(f"Could not load Trading 212 data: {exc}", file=sys.stderr)
+            print("Check .env for T212_ENV, T212_API_KEY, and optional T212_API_SECRET.", file=sys.stderr)
+            return 2
     account_value = extract_account_value(account_summary, positions)
     cash = extract_cash(account_summary)
     position_changes = build_position_changes(positions, previous_positions)
