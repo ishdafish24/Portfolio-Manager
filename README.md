@@ -60,7 +60,7 @@ The most macOS-native option is `launchd`. Create this file:
 
 `~/Library/LaunchAgents/com.ishaan.portfolio-reporter.plist`
 
-Example for a daily 7:30 AM email:
+Example for a daily 4:00 AM email:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -90,9 +90,9 @@ Example for a daily 7:30 AM email:
   <key>StartCalendarInterval</key>
   <dict>
     <key>Hour</key>
-    <integer>7</integer>
+    <integer>4</integer>
     <key>Minute</key>
-    <integer>30</integer>
+    <integer>0</integer>
   </dict>
 
   <key>StandardOutPath</key>
@@ -129,7 +129,7 @@ Open your crontab:
 crontab -e
 ```
 
-Add a daily run, for example 7:30 AM:
+Add a daily run, for example 4:00 AM:
 
 ```cron
 30 7 * * * cd "/Users/ishaan/Documents/New project" && /usr/bin/python3 -m portfolio_daily_reporter.main >> reporter.log 2>&1
