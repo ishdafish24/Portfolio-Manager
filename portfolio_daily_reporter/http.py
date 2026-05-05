@@ -19,7 +19,12 @@ def get_json(
         query = parse.urlencode({k: v for k, v in params.items() if v is not None})
         separator = "&" if "?" in url else "?"
         url = f"{url}{separator}{query}"
-    req = request.Request(url, headers=headers or {}, method="GET")
+    request_headers = {
+        "Accept": "application/json",
+        "User-Agent": "PortfolioDailyReporter/0.1",
+        **(headers or {}),
+    }
+    req = request.Request(url, headers=request_headers, method="GET")
     try:
         with request.urlopen(req, timeout=timeout) as response:
             data = response.read().decode("utf-8")
@@ -31,4 +36,3 @@ def get_json(
     if not data:
         return None
     return json.loads(data)
-
