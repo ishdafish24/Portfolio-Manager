@@ -72,7 +72,7 @@ Example for a daily 6:30 AM email:
   <string>com.ishaan.portfolio-reporter</string>
 
   <key>WorkingDirectory</key>
-  <string>/Users/ishaan/Documents/New project</string>
+  <string>/Users/ishaan/Development/Portfolio-Manager</string>
 
   <key>ProgramArguments</key>
   <array>
@@ -84,7 +84,7 @@ Example for a daily 6:30 AM email:
   <key>EnvironmentVariables</key>
   <dict>
     <key>PYTHONPATH</key>
-    <string>/Users/ishaan/Documents/New project</string>
+    <string>/Users/ishaan/Development/Portfolio-Manager</string>
   </dict>
 
   <key>StartCalendarInterval</key>
@@ -96,9 +96,9 @@ Example for a daily 6:30 AM email:
   </dict>
 
   <key>StandardOutPath</key>
-  <string>/Users/ishaan/Documents/New project/reporter.log</string>
+  <string>/Users/ishaan/Development/Portfolio-Manager/reporter.log</string>
   <key>StandardErrorPath</key>
-  <string>/Users/ishaan/Documents/New project/reporter.err.log</string>
+  <string>/Users/ishaan/Development/Portfolio-Manager/reporter.err.log</string>
 </dict>
 </plist>
 ```
@@ -132,7 +132,7 @@ crontab -e
 Add a daily run, for example 6:30 AM:
 
 ```cron
-30 7 * * * cd "/Users/ishaan/Documents/New project" && /usr/bin/python3 -m portfolio_daily_reporter.main >> reporter.log 2>&1
+30 7 * * * cd "/Users/ishaan/Development/Portfolio-Manager" && /usr/bin/python3 -m portfolio_daily_reporter.main >> reporter.log 2>&1
 ```
 
 Cron has a small environment, so keep credentials in `.env` in this project folder.
