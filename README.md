@@ -56,6 +56,67 @@ python3 -m portfolio_daily_reporter.main
 
 ## Daily Scheduling On macOS
 
+The most macOS-native option is `launchd`. Create this file:
+
+`~/Library/LaunchAgents/com.ishaan.portfolio-reporter.plist`
+
+Example for a daily 7:30 AM email:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.ishaan.portfolio-reporter</string>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/ishaan/Documents/New project</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/python3</string>
+    <string>-m</string>
+    <string>portfolio_daily_reporter.main</string>
+  </array>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>7</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/ishaan/Documents/New project/reporter.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/ishaan/Documents/New project/reporter.err.log</string>
+</dict>
+</plist>
+```
+
+Load it:
+
+```bash
+launchctl load ~/Library/LaunchAgents/com.ishaan.portfolio-reporter.plist
+```
+
+Run it immediately for a test:
+
+```bash
+launchctl start com.ishaan.portfolio-reporter
+```
+
+Unload it if you want to pause the daily email:
+
+```bash
+launchctl unload ~/Library/LaunchAgents/com.ishaan.portfolio-reporter.plist
+```
+
+Cron also works if you prefer it.
+
 Open your crontab:
 
 ```bash

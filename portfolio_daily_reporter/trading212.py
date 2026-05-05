@@ -19,6 +19,7 @@ class Position:
     value: float
     unrealized_pnl: float
     currency: str
+    price_currency: str = ""
 
 
 class Trading212Client:
@@ -53,11 +54,27 @@ class Trading212Client:
         value = number(wallet.get("currentValue"))
         if value == 0 and quantity and current_price:
             value = quantity * current_price
-        unrealized_pnl = number(wallet.get("ppl") or wallet.get("unrealizedPnl"))
+        unrealized_pnl = number(
+            wallet.get("unrealizedProfitLoss")
+            or wallet.get("ppl")
+            or wallet.get("unrealizedPnl")
+        )
         if unrealized_pnl == 0 and quantity and current_price and average_price:
             unrealized_pnl = (current_price - average_price) * quantity
-        currency = str(instrument.get("currencyCode") or wallet.get("currencyCode") or "")
-        return Position(ticker, symbol, name, quantity, average_price, current_price, value, unrealized_pnl, currency)
+        value_currency = str(wallet.get("currency") or wallet.get("currencyCode") or "")
+        price_currency = str(instrument.get("currency") or instrument.get("currencyCode") or value_currency)
+        return Position(
+            ticker,
+            symbol,
+            name,
+            quantity,
+            average_price,
+            current_price,
+            value,
+            unrealized_pnl,
+            value_currency,
+            price_currency,
+        )
 
 
 def number(value: Any) -> float:
@@ -74,4 +91,3 @@ def simplify_t212_ticker(ticker: str) -> str:
     if not ticker:
         return ""
     return ticker.split("_", 1)[0].replace("/", ".")
-

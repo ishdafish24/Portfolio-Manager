@@ -18,8 +18,13 @@ class PositionChange:
 
 
 def extract_cash(summary: dict[str, Any]) -> float:
-    for key in ("cash", "free", "totalCash", "availableCash", "blocked"):
-        if key in summary and key != "blocked":
+    cash = summary.get("cash")
+    if isinstance(cash, dict):
+        for key in ("availableToTrade", "free", "total", "totalCash", "availableCash"):
+            if key in cash:
+                return number(cash.get(key))
+    for key in ("free", "totalCash", "availableCash", "cash"):
+        if key in summary:
             return number(summary.get(key))
     return 0.0
 
@@ -30,6 +35,16 @@ def extract_account_value(summary: dict[str, Any], positions: list[Position]) ->
         if value:
             return value
     return sum(position.value for position in positions) + extract_cash(summary)
+
+
+def extract_account_currency(summary: dict[str, Any], positions: list[Position]) -> str:
+    currency = str(summary.get("currency") or "")
+    if currency:
+        return currency
+    for position in positions:
+        if position.currency:
+            return position.currency
+    return ""
 
 
 def build_position_changes(positions: list[Position], previous: dict[str, Any]) -> list[PositionChange]:
@@ -64,6 +79,7 @@ def render_report(
     top_movers: int,
 ) -> str:
     account_value = extract_account_value(account_summary, positions)
+    account_currency = extract_account_currency(account_summary, positions)
     cash = extract_cash(account_summary)
     previous_value = number(previous_snapshot["account_value"]) if previous_snapshot else 0.0
     daily_change = account_value - previous_value if previous_snapshot else 0.0
@@ -75,10 +91,10 @@ def render_report(
         f"# Daily Portfolio Report - {datetime.now().strftime('%Y-%m-%d')}",
         "",
         "## Account",
-        f"- Account value: {money(account_value, currency_symbol)} ({signed_money(daily_change, currency_symbol)} / {signed_pct(daily_change_pct)} vs previous snapshot)",
-        f"- Cash: {money(cash, currency_symbol)}",
-        f"- Invested value: {money(sum(position.value for position in positions), currency_symbol)}",
-        f"- Unrealized P/L: {signed_money(total_unrealized, currency_symbol)}",
+        f"- Account value: {money(account_value, account_currency, currency_symbol)} ({signed_money(daily_change, account_currency, currency_symbol)} / {signed_pct(daily_change_pct)} vs previous snapshot)",
+        f"- Cash available to trade: {money(cash, account_currency, currency_symbol)}",
+        f"- Invested value: {money(sum(position.value for position in positions), account_currency, currency_symbol)}",
+        f"- Unrealized P/L: {signed_money(total_unrealized, account_currency, currency_symbol)}",
         f"- Open positions: {len(positions)}",
         "",
         "## Biggest Movers",
@@ -87,9 +103,9 @@ def render_report(
         for change in movers:
             p = change.position
             lines.append(
-                f"- {p.symbol} ({p.name}): value {signed_money(change.value_change, currency_symbol)} "
-                f"({signed_pct(change.value_change_pct)}), price {signed_money(change.price_change, currency_symbol)} "
-                f"({signed_pct(change.price_change_pct)}), current value {money(p.value, currency_symbol)}"
+                f"- {p.symbol} ({p.name}): value {signed_money(change.value_change, p.currency or account_currency, currency_symbol)} "
+                f"({signed_pct(change.value_change_pct)}), price {signed_money(change.price_change, p.price_currency or p.currency, currency_symbol)} "
+                f"({signed_pct(change.price_change_pct)}), current value {money(p.value, p.currency or account_currency, currency_symbol)}"
             )
     else:
         lines.append("- No previous snapshot yet. Tomorrow's report will show daily movers.")
@@ -98,9 +114,10 @@ def render_report(
     for position in sorted(positions, key=lambda p: p.value, reverse=True):
         allocation = (position.value / account_value * 100) if account_value else 0
         lines.append(
-            f"- {position.symbol}: {money(position.value, currency_symbol)} ({allocation:.1f}% allocation), "
-            f"{position.quantity:g} shares, avg {money(position.average_price, currency_symbol)}, "
-            f"current {money(position.current_price, currency_symbol)}, P/L {signed_money(position.unrealized_pnl, currency_symbol)}"
+            f"- {position.symbol}: {money(position.value, position.currency or account_currency, currency_symbol)} ({allocation:.1f}% allocation), "
+            f"{position.quantity:g} shares, avg {money(position.average_price, position.price_currency or position.currency, currency_symbol)}, "
+            f"current {money(position.current_price, position.price_currency or position.currency, currency_symbol)}, "
+            f"P/L {signed_money(position.unrealized_pnl, position.currency or account_currency, currency_symbol)}"
         )
 
     lines.extend(["", "## Upcoming Earnings"])
@@ -144,7 +161,7 @@ def render_report(
         [
             "",
             "## Watchlist Flags",
-            *watchlist_flags(positions, account_value, position_changes, earnings, x_summaries, currency_symbol),
+            *watchlist_flags(positions, account_value, position_changes, earnings, x_summaries, account_currency, currency_symbol),
             "",
             "_Monitoring report only. Not financial advice._",
         ]
@@ -158,7 +175,8 @@ def watchlist_flags(
     changes: list[PositionChange],
     earnings: list[EarningsItem],
     x_summaries: dict[str, XSummary],
-    currency_symbol: str,
+    account_currency: str,
+    fallback_symbol: str,
 ) -> list[str]:
     flags = []
     for position in positions:
@@ -169,7 +187,11 @@ def watchlist_flags(
         if abs(change.price_change_pct) >= 5:
             flags.append(f"- Price move: {change.position.symbol} moved {signed_pct(change.price_change_pct)} since the previous snapshot.")
         if abs(change.value_change) >= 500:
-            flags.append(f"- Value move: {change.position.symbol} changed by {signed_money(change.value_change, currency_symbol)} since the previous snapshot.")
+            flags.append(
+                f"- Value move: {change.position.symbol} changed by "
+                f"{signed_money(change.value_change, change.position.currency or account_currency, fallback_symbol)} "
+                "since the previous snapshot."
+            )
     for item in earnings:
         flags.append(f"- Earnings soon: {item.symbol} reports on {item.date}.")
     for symbol, summary in x_summaries.items():
@@ -184,13 +206,40 @@ def percent_change(current: float, previous: float) -> float:
     return ((current - previous) / abs(previous)) * 100
 
 
-def money(value: float, currency_symbol: str) -> str:
-    return f"{currency_symbol}{value:,.2f}"
+def money(value: float, currency: str, fallback_symbol: str = "$") -> str:
+    symbol = currency_symbol(currency, fallback_symbol)
+    suffix = currency_suffix(currency, symbol)
+    return f"{symbol}{value:,.2f}{suffix}"
 
 
-def signed_money(value: float, currency_symbol: str) -> str:
+def signed_money(value: float, currency: str, fallback_symbol: str = "$") -> str:
     sign = "+" if value >= 0 else "-"
-    return f"{sign}{currency_symbol}{abs(value):,.2f}"
+    symbol = currency_symbol(currency, fallback_symbol)
+    suffix = currency_suffix(currency, symbol)
+    return f"{sign}{symbol}{abs(value):,.2f}{suffix}"
+
+
+def currency_symbol(currency: str, fallback_symbol: str = "$") -> str:
+    symbols = {
+        "GBP": "£",
+        "GBX": "p",
+        "USD": "$",
+        "EUR": "€",
+        "CHF": "CHF ",
+        "CAD": "C$",
+        "AUD": "A$",
+        "JPY": "¥",
+    }
+    return symbols.get(currency.upper(), fallback_symbol)
+
+
+def currency_suffix(currency: str, symbol: str) -> str:
+    code = currency.upper()
+    if not code or code in {"GBP", "GBX", "USD", "EUR", "JPY"}:
+        return ""
+    if code in symbol:
+        return ""
+    return f" {code}"
 
 
 def signed_pct(value: float) -> str:
@@ -200,4 +249,3 @@ def signed_pct(value: float) -> str:
 
 def clean_post(text: str) -> str:
     return " ".join(text.split())[:240]
-
