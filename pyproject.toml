@@ -1,0 +1,10 @@
+[project]
+name = "trading212-daily-reporter"
+version = "0.1.0"
+description = "Daily Trading 212 portfolio snapshot, enrichment, and email report."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+portfolio-report = "portfolio_daily_reporter.main:main"
+
