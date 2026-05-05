@@ -4,5 +4,5 @@ __pycache__/
 *.py[cod]
 portfolio_snapshots.sqlite3
 reporter.log
+reporter.err.log
 .DS_Store
-

@@ -76,10 +76,16 @@ Example for a daily 7:30 AM email:
 
   <key>ProgramArguments</key>
   <array>
-    <string>/usr/bin/python3</string>
+    <string>/opt/homebrew/bin/python3</string>
     <string>-m</string>
     <string>portfolio_daily_reporter.main</string>
   </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PYTHONPATH</key>
+    <string>/Users/ishaan/Documents/New project</string>
+  </dict>
 
   <key>StartCalendarInterval</key>
   <dict>
